@@ -5,6 +5,7 @@ import { Plus, Trash2, Edit2, Save, X, Image as ImageIcon } from 'lucide-react';
 
 const CATEGORIES = ['Спорт', 'Наука', 'Мероприятия', 'Достижения'];
 const CLASSES = ['1-4', '5-8', '9-12'];
+const MOKKY_API_URL = 'https://441a5275e1ace0b6.mokky.dev/data';
 
 const AdminDashboard = () => {
   const [news, setNews] = useState([]);
@@ -20,31 +21,19 @@ const AdminDashboard = () => {
   useEffect(() => {
     const fetchNews = async () => {
       try {
-        const response = await fetch('http://127.0.0.1:5001/api/news');
+        const response = await fetch(MOKKY_API_URL);
+        if (!response.ok) {
+          throw new Error('Server response was not ok');
+        }
         const data = await response.json();
         setNews(data);
       } catch (error) {
         console.error('Failed to fetch news:', error);
+        alert('Ошибка при загрузке новостей с сервера Mokky');
       }
     };
     fetchNews();
   }, []);
-
-  const saveToBackend = async (updatedNews) => {
-    try {
-      await fetch('http://127.0.0.1:5001/api/news', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(updatedNews),
-      });
-      setNews(updatedNews);
-    } catch (error) {
-      console.error('Failed to save news:', error);
-      alert('Ошибка при сохранении данных на сервере');
-    }
-  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -53,29 +42,50 @@ const AdminDashboard = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    let updatedNews;
-    if (isEditing) {
-      updatedNews = news.map(item => 
-        item.id === isEditing ? { ...item, ...formData } : item
-      );
-      await saveToBackend(updatedNews);
-      setIsEditing(null);
-    } else {
-      const newItem = {
-        ...formData,
-        id: Date.now(),
-        date: new Date().toLocaleDateString('ru-RU')
-      };
-      updatedNews = [newItem, ...news];
-      await saveToBackend(updatedNews);
+    try {
+      if (isEditing) {
+        const response = await fetch(`${MOKKY_API_URL}/${isEditing}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData),
+        });
+        if (!response.ok) throw new Error('Failed to update');
+        const updatedItem = await response.json();
+        setNews(news.map(item => item.id === isEditing ? updatedItem : item));
+        setIsEditing(null);
+      } else {
+        const newItem = {
+          ...formData,
+          date: new Date().toLocaleDateString('ru-RU')
+        };
+        const response = await fetch(MOKKY_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newItem),
+        });
+        if (!response.ok) throw new Error('Failed to create');
+        const savedItem = await response.json();
+        setNews([savedItem, ...news]);
+      }
+      setFormData({ title: '', content: '', category: 'Спорт', classRange: '1-4', image: '' });
+    } catch (error) {
+      console.error('Save error:', error);
+      alert('Ошибка при сохранении данных');
     }
-    setFormData({ title: '', content: '', category: 'Спорт', classRange: '1-4', image: '' });
   };
 
   const deleteItem = async (id) => {
     if (window.confirm('Вы уверены, что хотите удалить эту новость?')) {
-      const updatedNews = news.filter(item => item.id !== id);
-      await saveToBackend(updatedNews);
+      try {
+        const response = await fetch(`${MOKKY_API_URL}/${id}`, {
+          method: 'DELETE',
+        });
+        if (!response.ok) throw new Error('Failed to delete');
+        setNews(news.filter(item => item.id !== id));
+      } catch (error) {
+        console.error('Delete error:', error);
+        alert('Ошибка при удалении');
+      }
     }
   };
 

@@ -17,11 +17,17 @@ app.use(express.json()); // Built-in alternative to body-parser
 
 // Helper to read DB
 const readDB = () => {
-  if (!fs.existsSync(DB_FILE)) {
+  try {
+    if (!fs.existsSync(DB_FILE)) {
+      return [];
+    }
+    const data = fs.readFileSync(DB_FILE, 'utf8').trim();
+    if (!data) return [];
+    return JSON.parse(data);
+  } catch (error) {
+    console.error('Error reading DB:', error);
     return [];
   }
-  const data = fs.readFileSync(DB_FILE, 'utf8');
-  return JSON.parse(data || '[]');
 };
 
 // Helper to write DB

@@ -17,27 +17,35 @@ const Landing = () => {
   useEffect(() => {
     const fetchNews = async () => {
       try {
-        const response = await fetch('http://127.0.0.1:5001/api/news');
+        const response = await fetch('https://441a5275e1ace0b6.mokky.dev/data');
+        if (!response.ok) {
+          throw new Error('Server response was not ok');
+        }
         const data = await response.json();
         
         if (data && data.length > 0) {
           setNews(data);
         } else {
           // Fallback to demo data if empty
-          const demoNews = Array.from({ length: 20 }).map((_, i) => ({
-            id: i + 1,
-            title: `Новость №${i + 1}`,
-            content: "Краткое описание события, которое произошло в нашей школе. Будьте в курсе всех новостей!",
-            category: CATEGORIES[Math.floor(Math.random() * (CATEGORIES.length - 1)) + 1],
-            classRange: CLASSES[Math.floor(Math.random() * (CLASSES.length - 1)) + 1],
-            date: new Date().toLocaleDateString('ru-RU'),
-            image: `https://picsum.photos/seed/${i + 10}/800/600`
-          }));
-          setNews(demoNews);
+          setNews(getDemoData());
         }
       } catch (error) {
         console.error('Failed to fetch news:', error);
+        // If server is not running, show demo data
+        setNews(getDemoData());
       }
+    };
+
+    const getDemoData = () => {
+      return Array.from({ length: 20 }).map((_, i) => ({
+        id: i + 1,
+        title: `Новость №${i + 1}`,
+        content: "Краткое описание события, которое произошло в нашей школе. Будьте в курсе всех новостей!",
+        category: CATEGORIES[Math.floor(Math.random() * (CATEGORIES.length - 1)) + 1],
+        classRange: CLASSES[Math.floor(Math.random() * (CLASSES.length - 1)) + 1],
+        date: new Date().toLocaleDateString('ru-RU'),
+        image: `https://picsum.photos/seed/${i + 10}/800/600`
+      }));
     };
 
     fetchNews();
